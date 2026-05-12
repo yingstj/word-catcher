@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Catcher</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  body { transition: background 1s; }
+  body.theme-school    { background: linear-gradient(180deg, #FFE5B4 0%, #FFD180 60%, #C8E6C9 100%); }
+  body.theme-beach     { background: linear-gradient(180deg, #87CEEB 0%, #B3E5FC 50%, #FFE082 100%); }
+  body.theme-backyard  { background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #A5D6A7 100%); }
+  body.theme-kitchen   { background: linear-gradient(180deg, #FFF8E1 0%, #FFE0B2 60%, #FFCCBC 100%); }
+  body.theme-bedroom   { background: linear-gradient(180deg, #B39DDB 0%, #CE93D8 50%, #F8BBD0 100%); }
+  body.theme-playroom  { background: linear-gradient(180deg, #FFCCBC 0%, #FFE0B2 50%, #FFF59D 100%); }
+  body.theme-playground{ background: linear-gradient(180deg, #81D4FA 0%, #A5D6A7 60%, #C5E1A5 100%); }
+  body.theme-park      { background: linear-gradient(180deg, #90CAF9 0%, #A5D6A7 50%, #C8E6C9 100%); }
+  #game { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+  .top-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(255,255,255,0.95); padding: 14px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .top-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px; font-size: 18px; font-weight: bold; gap: 8px;
+  }
+  .stars { color: #FF8C00; }
+  .theme-badge {
+    background: linear-gradient(135deg, #4A4A8A 0%, #6A5ACD 100%);
+    color: white; padding: 4px 12px; border-radius: 14px;
+    font-size: 16px; white-space: nowrap;
+  }
+  .round-num { color: #4A4A8A; }
+  .sentence {
+    font-size: 26px; font-weight: bold; color: #2D3142;
+    text-align: center; line-height: 1.4; padding: 12px;
+    background: linear-gradient(135deg, #FFE5B4 0%, #FFD93D 100%);
+    border-radius: 12px; border: 3px solid #FF8C00;
+  }
+  .target-word { display: inline-block; padding: 2px 6px; border-radius: 6px; transition: all 0.3s; }
+  .target-word.caught { background: #6BCF7F; color: white; text-decoration: line-through; }
+  .target-word.flash { background: #FFD93D; transform: scale(1.2); }
+  #playArea { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .falling-item {
+    position: absolute;
+    cursor: pointer;
+    transition: transform 0.1s;
+    will-change: transform;
+    font-size: 64px;
+    line-height: 1;
+    filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.25));
+  }
+  .falling-item:active { transform: scale(0.9); }
+  .pop-effect {
+    position: absolute; font-size: 40px; font-weight: bold;
+    pointer-events: none; animation: popAway 0.8s forwards; z-index: 200;
+  }
+  @keyframes popAway {
+    0% { transform: scale(1) translateY(0); opacity: 1; }
+    100% { transform: scale(2.5) translateY(-60px); opacity: 0; }
+  }
+  .shake-effect { animation: shake 0.3s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 500; padding: 16px;
+  }
+  .modal {
+    background: white; border-radius: 24px; padding: 28px 22px;
+    text-align: center; max-width: 92%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3); animation: popIn 0.4s;
+    max-height: 90vh; overflow-y: auto;
+  }
+  @keyframes popIn {
+    0% { transform: scale(0); }
+    80% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .modal-title { font-size: 30px; color: #4A4A8A; margin-bottom: 10px; }
+  .modal-text { font-size: 20px; color: #555; margin-bottom: 16px; line-height: 1.4; }
+  .modal-emoji { font-size: 70px; margin: 12px 0; animation: bounce 0.8s infinite alternate; }
+  @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-12px); } }
+  .big-button {
+    background: linear-gradient(135deg, #FF6B9D 0%, #FF8E53 100%);
+    color: white; font-size: 22px; font-weight: bold;
+    border: none; border-radius: 18px; padding: 14px 28px; cursor: pointer;
+    box-shadow: 0 5px 0 #C04A75, 0 7px 14px rgba(0,0,0,0.2);
+    font-family: inherit; margin: 6px;
+  }
+  .big-button:active { transform: translateY(3px); box-shadow: 0 2px 0 #C04A75, 0 4px 8px rgba(0,0,0,0.2); }
+  .small-button {
+    background: #E0E0E0; color: #555; font-size: 16px; font-weight: bold;
+    border: none; border-radius: 14px; padding: 10px 18px; cursor: pointer;
+    font-family: inherit; margin: 4px;
+  }
+  .theme-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    max-width: 500px; margin: 16px 0;
+  }
+  .theme-card {
+    background: linear-gradient(135deg, #FFE5B4, #FFD93D);
+    border: 3px solid #FF8C00; border-radius: 16px;
+    padding: 14px 8px; cursor: pointer; text-align: center; transition: transform 0.1s;
+  }
+  .theme-card:active { transform: scale(0.96); }
+  .theme-card-emoji { font-size: 42px; }
+  .theme-card-name { font-size: 18px; font-weight: bold; color: #4A4A8A; margin-top: 4px; }
+  @media (max-width: 500px) {
+    .sentence { font-size: 21px; }
+    .falling-item { font-size: 52px; }
+    .modal-title { font-size: 24px; }
+    .modal-text { font-size: 17px; }
+    .theme-card-name { font-size: 15px; }
+    .theme-card-emoji { font-size: 36px; }
+  }
+</style>
+</head>
+<body class="theme-backyard">
+<div id="game">
+  <div class="top-bar" id="topBar" style="display:none;">
+    <div class="top-row">
+      <div class="stars">⭐ <span id="starCount">0</span></div>
+      <div class="theme-badge" id="themeBadge">🌳 Backyard</div>
+      <div class="round-num"><span id="roundNum">1</span>/<span id="roundTotal">3</span></div>
+    </div>
+    <div class="sentence" id="sentence"></div>
+  </div>
+  <div id="playArea"></div>
+</div>
+<script>
+const THEMES = [
+  { id: "school", name: "School", icon: "🏫", bodyClass: "theme-school",
+    sentences: [
+      { sentence: "I sit at my desk with a book and a pencil.",
+        targets: [{word:"desk",emoji:"🪑"},{word:"book",emoji:"📖"},{word:"pencil",emoji:"✏️"}] },
+      { sentence: "The bell rings and we run to the bus.",
+        targets: [{word:"bell",emoji:"🔔"},{word:"bus",emoji:"🚌"}] },
+      { sentence: "I eat my lunch with an apple and milk.",
+        targets: [{word:"lunch",emoji:"🥪"},{word:"apple",emoji:"🍎"},{word:"milk",emoji:"🥛"}] }
+    ],
+    distractors: [{word:"clock",emoji:"🕐"},{word:"crayon",emoji:"🖍️"},{word:"paper",emoji:"📄"},{word:"bag",emoji:"🎒"},{word:"ruler",emoji:"📏"},{word:"globe",emoji:"🌍"},{word:"marker",emoji:"🖊️"}]
+  },
+  { id: "beach", name: "Beach", icon: "🏖️", bodyClass: "theme-beach",
+    sentences: [
+      { sentence: "I dig in the sand with a bucket and a shovel.",
+        targets: [{word:"sand",emoji:"🏖️"},{word:"bucket",emoji:"🪣"},{word:"shovel",emoji:"🥄"}] },
+      { sentence: "A crab walks by my towel near the sea.",
+        targets: [{word:"crab",emoji:"🦀"},{word:"towel",emoji:"🛁"},{word:"sea",emoji:"🌊"}] },
+      { sentence: "I see a fish and a shell in the water.",
+        targets: [{word:"fish",emoji:"🐟"},{word:"shell",emoji:"🐚"},{word:"water",emoji:"💧"}] }
+    ],
+    distractors: [{word:"sun",emoji:"☀️"},{word:"boat",emoji:"⛵"},{word:"bird",emoji:"🐦"},{word:"ice",emoji:"🍦"},{word:"hat",emoji:"👒"},{word:"umbrella",emoji:"☂️"},{word:"ball",emoji:"🏐"}]
+  },
+  { id: "backyard", name: "Backyard", icon: "🌳", bodyClass: "theme-backyard",
+    sentences: [
+      { sentence: "The apple falls from the tree onto a picnic blanket.",
+        targets: [{word:"apple",emoji:"🍎"},{word:"tree",emoji:"🌳"},{word:"blanket",emoji:"🧺"}] },
+      { sentence: "A frog hops on the grass next to a flower.",
+        targets: [{word:"frog",emoji:"🐸"},{word:"grass",emoji:"🌱"},{word:"flower",emoji:"🌼"}] },
+      { sentence: "My dog runs to the ball under the sun.",
+        targets: [{word:"dog",emoji:"🐶"},{word:"ball",emoji:"⚽"},{word:"sun",emoji:"☀️"}] }
+    ],
+    distractors: [{word:"bee",emoji:"🐝"},{word:"leaf",emoji:"🍃"},{word:"bird",emoji:"🐦"},{word:"rock",emoji:"🪨"},{word:"stick",emoji:"🪵"},{word:"cloud",emoji:"☁️"}]
+  },
+  { id: "kitchen", name: "Kitchen", icon: "🍳", bodyClass: "theme-kitchen",
+    sentences: [
+      { sentence: "Mom puts an egg and bread on a plate.",
+        targets: [{word:"egg",emoji:"🥚"},{word:"bread",emoji:"🍞"},{word:"plate",emoji:"🍽️"}] },
+      { sentence: "I drink milk from a cup with my spoon.",
+        targets: [{word:"milk",emoji:"🥛"},{word:"cup",emoji:"🥤"},{word:"spoon",emoji:"🥄"}] },
+      { sentence: "The cake is on the table next to a fork.",
+        targets: [{word:"cake",emoji:"🎂"},{word:"table",emoji:"🪑"},{word:"fork",emoji:"🍴"}] }
+    ],
+    distractors: [{word:"pot",emoji:"🍲"},{word:"pan",emoji:"🍳"},{word:"apple",emoji:"🍎"},{word:"banana",emoji:"🍌"},{word:"knife",emoji:"🔪"},{word:"cheese",emoji:"🧀"},{word:"pizza",emoji:"🍕"}]
+  },
+  { id: "bedroom", name: "My Bedroom", icon: "🛏️", bodyClass: "theme-bedroom",
+    sentences: [
+      { sentence: "I sleep in my bed with a pillow and a teddy.",
+        targets: [{word:"bed",emoji:"🛏️"},{word:"pillow",emoji:"🛌"},{word:"teddy",emoji:"🧸"}] },
+      { sentence: "The lamp is on so I can read a book.",
+        targets: [{word:"lamp",emoji:"💡"},{word:"book",emoji:"📖"}] },
+      { sentence: "I put my socks and shoes in the closet.",
+        targets: [{word:"socks",emoji:"🧦"},{word:"shoes",emoji:"👟"},{word:"closet",emoji:"🚪"}] }
+    ],
+    distractors: [{word:"clock",emoji:"🕐"},{word:"blanket",emoji:"🛌"},{word:"moon",emoji:"🌙"},{word:"star",emoji:"⭐"},{word:"hat",emoji:"🎩"},{word:"shirt",emoji:"👕"}]
+  },
+  { id: "playroom", name: "Playroom", icon: "🧸", bodyClass: "theme-playroom",
+    sentences: [
+      { sentence: "I build a tower with my blocks and a truck.",
+        targets: [{word:"tower",emoji:"🗼"},{word:"blocks",emoji:"🧱"},{word:"truck",emoji:"🚚"}] },
+      { sentence: "My doll sits on the rug with a book.",
+        targets: [{word:"doll",emoji:"🪆"},{word:"rug",emoji:"🟫"},{word:"book",emoji:"📖"}] },
+      { sentence: "I play a game with my train and a ball.",
+        targets: [{word:"game",emoji:"🎲"},{word:"train",emoji:"🚂"},{word:"ball",emoji:"⚽"}] }
+    ],
+    distractors: [{word:"drum",emoji:"🥁"},{word:"puzzle",emoji:"🧩"},{word:"crayon",emoji:"🖍️"},{word:"kite",emoji:"🪁"},{word:"car",emoji:"🚗"},{word:"robot",emoji:"🤖"},{word:"balloon",emoji:"🎈"}]
+  },
+  { id: "playground", name: "Playground", icon: "🛝", bodyClass: "theme-playground",
+    sentences: [
+      { sentence: "I go down the slide and run to the swing.",
+        targets: [{word:"slide",emoji:"🛝"},{word:"swing",emoji:"🪢"}] },
+      { sentence: "My friend kicks a ball on the grass with me.",
+        targets: [{word:"friend",emoji:"🧒"},{word:"ball",emoji:"⚽"},{word:"grass",emoji:"🌱"}] },
+      { sentence: "A bird sits in the tree above the bench.",
+        targets: [{word:"bird",emoji:"🐦"},{word:"tree",emoji:"🌳"},{word:"bench",emoji:"🪑"}] }
+    ],
+    distractors: [{word:"sun",emoji:"☀️"},{word:"cloud",emoji:"☁️"},{word:"kite",emoji:"🪁"},{word:"dog",emoji:"🐶"},{word:"ice",emoji:"🍦"},{word:"ladybug",emoji:"🐞"}]
+  },
+  { id: "park", name: "The Park", icon: "🦆", bodyClass: "theme-park",
+    sentences: [
+      { sentence: "A duck swims in the pond by the path.",
+        targets: [{word:"duck",emoji:"🦆"},{word:"pond",emoji:"💧"},{word:"path",emoji:"🛤️"}] },
+      { sentence: "I see a squirrel run up a big tree.",
+        targets: [{word:"squirrel",emoji:"🐿️"},{word:"tree",emoji:"🌳"}] },
+      { sentence: "We eat lunch on a bench with my mom.",
+        targets: [{word:"lunch",emoji:"🥪"},{word:"bench",emoji:"🪑"},{word:"mom",emoji:"👩"}] }
+    ],
+    distractors: [{word:"rock",emoji:"🪨"},{word:"flower",emoji:"🌼"},{word:"bug",emoji:"🐛"},{word:"dog",emoji:"🐶"},{word:"frisbee",emoji:"🥏"},{word:"leaf",emoji:"🍃"}]
+  }
+];
+
+const FRIENDS = ['🐶','🐱','🐰','🦊','🐻','🐼','🐨','🦁','🐸','🐵'];
+
+const state = {
+  stars: 0, currentTheme: null, themeIndex: 0, sentenceIndex: 0,
+  caught: new Set(), needed: 0, items: [],
+  rafId: null, spawnTimer: null, friendsUnlocked: 0, completedThemes: new Set()
+};
+
+const playArea = document.getElementById('playArea');
+const sentenceEl = document.getElementById('sentence');
+const topBar = document.getElementById('topBar');
+
+function renderSentence(puzzle) {
+  const targetWords = puzzle.targets.map(t => t.word.toLowerCase());
+  const tokens = puzzle.sentence.split(/(\s+)/);
+  const html = tokens.map(tok => {
+    const clean = tok.replace(/[^a-zA-Z]/g, '').toLowerCase();
+    if (targetWords.includes(clean)) {
+      const caughtClass = state.caught.has(clean) ? 'caught' : '';
+      return `<span class="target-word ${caughtClass}" data-word="${clean}">${tok}</span>`;
+    }
+    return `<span>${tok}</span>`;
+  }).join('');
+  sentenceEl.innerHTML = html;
+}
+
+function flashTargetWord(word) {
+  const el = sentenceEl.querySelector(`[data-word="${word}"]`);
+  if (!el) return;
+  el.classList.add('flash');
+  setTimeout(() => {
+    el.classList.remove('flash');
+    el.classList.add('caught');
+  }, 400);
+}
+
+class FallingItem {
+  constructor(word, emoji, isTarget) {
+    this.word = word; this.emoji = emoji; this.isTarget = isTarget;
+    const el = document.createElement('div');
+    el.className = 'falling-item';
+    el.textContent = emoji;
+    el.addEventListener('click', () => this.handleTap());
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); this.handleTap(); }, { passive: false });
+    this.el = el;
+    const playWidth = playArea.clientWidth;
+    this.x = 30 + Math.random() * Math.max(playWidth - 110, 100);
+    this.y = -80;
+    this.speed = 0.5 + Math.random() * 0.5;
+    this.sway = Math.random() * Math.PI * 2;
+    this.swayAmount = 10 + Math.random() * 20;
+    el.style.left = this.x + 'px';
+    el.style.top = this.y + 'px';
+    playArea.appendChild(el);
+  }
+  update() {
+    this.y += this.speed;
+    this.sway += 0.03;
+    const swayX = Math.sin(this.sway) * this.swayAmount;
+    this.el.style.top = this.y + 'px';
+    this.el.style.left = (this.x + swayX) + 'px';
+    if (this.y > playArea.clientHeight + 50) { this.remove(); return false; }
+    return true;
+  }
+  handleTap() {
+    if (this.isTarget && !state.caught.has(this.word.toLowerCase())) {
+      state.caught.add(this.word.toLowerCase());
+      state.stars++; updateStars();
+      flashTargetWord(this.word.toLowerCase());
+      showPopEffect(this.x, this.y, '+⭐', '#FFD93D');
+      this.remove();
+      if (state.caught.size >= state.needed) setTimeout(() => completeSentence(), 800);
+    } else if (this.isTarget && state.caught.has(this.word.toLowerCase())) {
+      this.el.classList.add('shake-effect');
+      setTimeout(() => this.el.classList.remove('shake-effect'), 300);
+    } else {
+      this.el.classList.add('shake-effect');
+      setTimeout(() => this.el.classList.remove('shake-effect'), 300);
+    }
+  }
+  remove() {
+    if (this.el.parentNode) this.el.parentNode.removeChild(this.el);
+    const idx = state.items.indexOf(this);
+    if (idx > -1) state.items.splice(idx, 1);
+  }
+}
+
+function showPopEffect(x, y, text, color) {
+  const pop = document.createElement('div');
+  pop.className = 'pop-effect';
+  pop.textContent = text;
+  pop.style.left = x + 'px'; pop.style.top = y + 'px'; pop.style.color = color;
+  playArea.appendChild(pop);
+  setTimeout(() => pop.remove(), 800);
+}
+
+function gameLoop() {
+  for (let i = state.items.length - 1; i >= 0; i--) state.items[i].update();
+  state.rafId = requestAnimationFrame(gameLoop);
+}
+
+function spawn() {
+  const theme = state.currentTheme;
+  const puzzle = theme.sentences[state.sentenceIndex];
+  const uncaughtTargets = puzzle.targets.filter(t => !state.caught.has(t.word.toLowerCase()));
+  let item;
+  if (uncaughtTargets.length > 0 && Math.random() < 0.4) {
+    const pick = uncaughtTargets[Math.floor(Math.random() * uncaughtTargets.length)];
+    item = new FallingItem(pick.word, pick.emoji, true);
+  } else {
+    const d = theme.distractors[Math.floor(Math.random() * theme.distractors.length)];
+    item = new FallingItem(d.word, d.emoji, false);
+  }
+  state.items.push(item);
+}
+
+function updateStars() { document.getElementById('starCount').textContent = state.stars; }
+function stopSpawning() { if (state.spawnTimer) { clearInterval(state.spawnTimer); state.spawnTimer = null; } }
+function clearItems() { state.items.forEach(it => it.remove()); state.items = []; }
+
+function showThemePicker() {
+  stopSpawning(); clearItems();
+  topBar.style.display = 'none';
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'themePicker';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title">📚 Word Catcher 🌟</div>
+      <div class="modal-text">Pick a place to read about!</div>
+      <div class="theme-grid">
+        ${THEMES.map((t, i) => `
+          <div class="theme-card" data-idx="${i}">
+            <div class="theme-card-emoji">${t.icon}</div>
+            <div class="theme-card-name">${t.name}</div>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:14px; font-size:18px; color:#666;">
+        ⭐ ${state.stars} stars · ${state.friendsUnlocked} friends
+      </div>
+      ${state.friendsUnlocked > 0 ? `<div style="margin-top:10px; font-size:30px;">${FRIENDS.slice(0, state.friendsUnlocked).join(' ')}</div>` : ''}
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.idx);
+      overlay.remove();
+      startTheme(idx);
+    });
+  });
+}
+
+function startTheme(idx) {
+  state.themeIndex = idx;
+  state.currentTheme = THEMES[idx];
+  state.sentenceIndex = 0;
+  document.body.className = state.currentTheme.bodyClass;
+  topBar.style.display = 'block';
+  document.getElementById('themeBadge').textContent = `${state.currentTheme.icon} ${state.currentTheme.name}`;
+  document.getElementById('roundTotal').textContent = state.currentTheme.sentences.length;
+  startSentence();
+}
+
+function startSentence() {
+  clearItems();
+  state.caught = new Set();
+  const puzzle = state.currentTheme.sentences[state.sentenceIndex];
+  state.needed = puzzle.targets.length;
+  document.getElementById('roundNum').textContent = state.sentenceIndex + 1;
+  renderSentence(puzzle);
+  updateStars();
+  state.spawnTimer = setInterval(spawn, 900);
+  if (!state.rafId) gameLoop();
+}
+
+function completeSentence() {
+  stopSpawning(); clearItems();
+  const isLastSentence = state.sentenceIndex >= state.currentTheme.sentences.length - 1;
+  if (isLastSentence) completeTheme();
+  else showSentenceCompleteModal();
+}
+
+function showSentenceCompleteModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title">🎉 Nice reading! 🎉</div>
+      <div class="modal-emoji">⭐</div>
+      <div class="modal-text">Ready for the next sentence?</div>
+      <button class="big-button" id="nextBtn">Next ▶️</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('nextBtn').onclick = () => {
+    overlay.remove();
+    state.sentenceIndex++;
+    startSentence();
+  };
+}
+
+function completeTheme() {
+  state.completedThemes.add(state.currentTheme.id);
+  let friendUnlocked = false;
+  if (state.friendsUnlocked < FRIENDS.length) {
+    state.friendsUnlocked++;
+    friendUnlocked = true;
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title">🏆 ${state.currentTheme.name} Done! 🏆</div>
+      <div class="modal-emoji">${friendUnlocked ? FRIENDS[state.friendsUnlocked - 1] : '⭐'}</div>
+      <div class="modal-text">
+        ${friendUnlocked ? `You unlocked a new friend!` : `You finished all the sentences!`}
+      </div>
+      ${state.friendsUnlocked > 0 ? `<div style="font-size:32px; margin: 10px 0;">${FRIENDS.slice(0, state.friendsUnlocked).join(' ')}</div>` : ''}
+      <button class="big-button" id="newThemeBtn">Pick another place 🗺️</button>
+      <button class="small-button" id="replayBtn">Play this place again ↻</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('newThemeBtn').onclick = () => { overlay.remove(); showThemePicker(); };
+  document.getElementById('replayBtn').onclick = () => { overlay.remove(); startTheme(state.themeIndex); };
+}
+
+showThemePicker();
+</script>
+</body>
+</html>
