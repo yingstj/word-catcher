@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Catcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --ink: #2A2D43;
+    --cream: #FFF8EC;
+    --sun: #FFC857;
+    --berry: #E84855;
+    --leaf: #6BAA75;
+    --sky: #A8D8EA;
+    --plum: #6A4C93;
+    --peach: #FFB5A7;
+    --shadow-sm: 0 2px 0 rgba(42, 45, 67, 0.12);
+    --shadow-md: 0 6px 0 rgba(42, 45, 67, 0.15), 0 10px 20px rgba(42, 45, 67, 0.08);
+    --shadow-lg: 0 10px 0 rgba(42, 45, 67, 0.18), 0 20px 40px rgba(42, 45, 67, 0.15);
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Nunito', system-ui, sans-serif;
+  }
+
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: var(--font-body);
+    user-select: none; -webkit-user-select: none;
+    color: var(--ink);
+  }
+
+  body {
+    transition: background 1.2s ease;
+    background: linear-gradient(180deg, #FFE8C2 0%, #FFD89B 50%, #C7E9B0 100%);
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(255,255,255,0.3) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  body.theme-school    { background: linear-gradient(180deg, #FFE2B0 0%, #FFCB85 50%, #C8E6B5 100%); }
+  body.theme-beach     { background: linear-gradient(180deg, #A8D8EA 0%, #C9E4DE 50%, #FFE5A0 100%); }
+  body.theme-backyard  { background: linear-gradient(180deg, #B5DDF1 0%, #C9E4DE 50%, #A8D8B9 100%); }
+  body.theme-kitchen   { background: linear-gradient(180deg, #FFF1D6 0%, #FFD9B3 60%, #FFC4B0 100%); }
+  body.theme-bedroom   { background: linear-gradient(180deg, #C9B6E4 0%, #D9C2EA 50%, #FFD4DD 100%); }
+  body.theme-playroom  { background: linear-gradient(180deg, #FFD4B5 0%, #FFE2B0 50%, #FFF1B0 100%); }
+  body.theme-playground{ background: linear-gradient(180deg, #A8D8EA 0%, #B5D9A8 60%, #D4E8B0 100%); }
+  body.theme-park      { background: linear-gradient(180deg, #B5DDF1 0%, #B5D9A8 50%, #C8E6B5 100%); }
+
+  .cloud {
+    position: fixed;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    z-index: 2;
+    pointer-events: none;
+    filter: blur(2px);
+  }
+  .cloud-1 { width: 180px; height: 60px; top: 15%; left: -10%; animation: drift 60s linear infinite; }
+  .cloud-2 { width: 140px; height: 50px; top: 35%; left: -10%; animation: drift 80s linear infinite; animation-delay: -30s; }
+  .cloud-3 { width: 200px; height: 70px; top: 60%; left: -10%; animation: drift 70s linear infinite; animation-delay: -15s; }
+  @keyframes drift {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(100vw + 200px)); }
+  }
+
+  #game { position: relative; width: 100%; height: 100vh; overflow: hidden; z-index: 10; }
+
+  /* ============ THEME-SPECIFIC BACKGROUND DECORATIONS ============ */
+  .theme-decoration {
+    position: fixed;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0.55;
+    filter: drop-shadow(2px 4px 8px rgba(42, 45, 67, 0.1));
+  }
+  .theme-decoration.animated {
+    will-change: transform;
+  }
+
+  /* Float animations for animated elements */
+  @keyframes floatSlow {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(8px, -10px); }
+  }
+  @keyframes swimRight {
+    from { transform: translateX(-100px); }
+    to { transform: translateX(calc(100vw + 100px)); }
+  }
+  @keyframes swimLeft {
+    from { transform: translateX(calc(100vw + 100px)) scaleX(-1); }
+    to { transform: translateX(-100px) scaleX(-1); }
+  }
+  @keyframes buzzAround {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(30px, -15px); }
+    50% { transform: translate(60px, 5px); }
+    75% { transform: translate(30px, 20px); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+  }
+  @keyframes blink {
+    0%, 96%, 100% { opacity: 0.55; }
+    98% { opacity: 0; }
+  }
+
+  /* ============ MUTE BUTTON ============ */
+  .mute-button {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 600;
+    background: var(--cream);
+    border: 3px solid var(--ink);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: 0 4px 0 var(--ink);
+    transition: transform 0.1s, box-shadow 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    font-family: var(--font-body);
+  }
+  .mute-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--ink);
+  }
+  /* Only show in the top-bar context (during play) */
+  .mute-button.in-game {
+    top: 18px;
+    right: 18px;
+  }
+  @media (max-width: 500px) {
+    .mute-button { width: 38px; height: 38px; font-size: 17px; }
+  }
+
+  /* ============ PARTICLE BURST ============ */
+  .particle {
+    position: absolute;
+    pointer-events: none;
+    will-change: transform, opacity;
+    z-index: 250;
+    font-size: 22px;
+    line-height: 1;
+  }
+  /* Different particle types — randomly picked per burst */
+  .particle.confetti {
+    width: 12px;
+    height: 16px;
+    border-radius: 2px;
+  }
+  .particle.spark {
+    color: var(--sun);
+    font-weight: 900;
+    text-shadow: 0 0 8px rgba(255, 200, 87, 0.8);
+  }
+  .particle.ring {
+    position: absolute;
+    border: 4px solid var(--sun);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 240;
+  }
+  @keyframes ringPulse {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; border-width: 6px; }
+    100% { transform: translate(-50%, -50%) scale(3); opacity: 0; border-width: 1px; }
+  }
+  @keyframes particleFly {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) rotate(var(--tr)); opacity: 0; }
+  }
+
+  /* ============ END-OF-THEME TABLEAU ============ */
+  .tableau-card {
+    background: var(--cream);
+    border: 4px solid var(--ink);
+    border-radius: 20px;
+    padding: 24px 20px 18px;
+    margin: 14px auto;
+    box-shadow: var(--shadow-md);
+    max-width: 100%;
+    position: relative;
+    transform: rotate(-1.5deg);
+  }
+  .tableau-card::before {
+    content: '';
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 80px;
+    height: 20px;
+    background: rgba(232, 72, 85, 0.4);
+    border-radius: 2px;
+    box-shadow: 0 2px 4px rgba(42, 45, 67, 0.1);
+  }
+  .tableau-scene {
+    position: relative;
+    min-height: 160px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 18px 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .tableau-item {
+    font-size: 52px;
+    line-height: 1;
+    filter: drop-shadow(2px 4px 0 rgba(42, 45, 67, 0.15));
+    animation: tableauPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  }
+  @keyframes tableauPop {
+    0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+    100% { transform: scale(1) rotate(var(--rot, 0deg)); opacity: 1; }
+  }
+  .tableau-caption {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--ink);
+    margin-top: 14px;
+    opacity: 0.85;
+  }
+
+  .top-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 18px 18px 22px;
+  }
+  .top-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px; gap: 10px;
+  }
+
+  .stat-pill {
+    background: var(--cream);
+    border: 3px solid var(--ink);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 18px;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: var(--shadow-sm);
+    color: var(--ink);
+  }
+  .stat-pill .icon { font-size: 22px; line-height: 1; }
+  .stat-pill .stars-num { color: var(--berry); }
+  .stat-pill.theme-pill {
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+
+  .sentence-card {
+    background: var(--cream);
+    border: 4px solid var(--ink);
+    border-radius: 24px;
+    padding: 16px 20px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+  }
+  .sentence-card::before, .sentence-card::after {
+    content: '';
+    position: absolute;
+    width: 10px; height: 10px;
+    background: var(--berry);
+    border-radius: 50%;
+    top: -6px;
+  }
+  .sentence-card::before { left: 16px; }
+  .sentence-card::after { right: 16px; background: var(--sun); }
+
+  .sentence {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+  .target-word {
+    display: inline-block;
+    padding: 2px 8px 4px;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: rgba(255, 200, 87, 0.55);
+    border-bottom: 5px solid var(--berry);
+    margin: 0 2px;
+    text-decoration: underline;
+    text-decoration-color: var(--berry);
+    text-decoration-thickness: 3px;
+    text-underline-offset: 2px;
+  }
+  .target-word.caught {
+    background: var(--leaf);
+    color: var(--cream);
+    border-bottom-color: var(--leaf);
+    text-decoration: line-through;
+    text-decoration-color: var(--cream);
+    text-decoration-thickness: 3px;
+  }
+  .target-word.flash {
+    background: var(--sun);
+    transform: scale(1.18) rotate(-2deg);
+    box-shadow: 0 6px 0 var(--ink);
+  }
+
+  #playArea { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+  .falling-item {
+    position: absolute;
+    cursor: pointer;
+    will-change: transform;
+    font-size: 112px;
+    line-height: 1;
+    filter:
+      drop-shadow(3px 6px 0 rgba(42, 45, 67, 0.18))
+      drop-shadow(0 8px 16px rgba(42, 45, 67, 0.15));
+    transition: transform 0.1s ease;
+    animation: gentleWobble 3s ease-in-out infinite;
+  }
+  @keyframes gentleWobble {
+    0%, 100% { transform: rotate(-2deg); }
+    50% { transform: rotate(2deg); }
+  }
+  .falling-item:active { transform: scale(0.88) !important; }
+  .falling-item.shake-effect { animation: shake 0.4s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    25% { transform: translateX(-10px) rotate(-6deg); }
+    75% { transform: translateX(10px) rotate(6deg); }
+  }
+
+  .pop-effect {
+    position: absolute;
+    font-family: var(--font-display);
+    font-size: 52px;
+    font-weight: 900;
+    color: var(--sun);
+    pointer-events: none;
+    animation: popAway 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    z-index: 200;
+    text-shadow: 3px 3px 0 var(--ink);
+  }
+  @keyframes popAway {
+    0% { transform: scale(0.5) translateY(0) rotate(-10deg); opacity: 1; }
+    30% { transform: scale(1.4) translateY(-20px) rotate(5deg); opacity: 1; }
+    100% { transform: scale(2.2) translateY(-100px) rotate(-8deg); opacity: 0; }
+  }
+
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(42, 45, 67, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 500; padding: 20px;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--cream);
+    border: 4px solid var(--ink);
+    border-radius: 32px;
+    padding: 36px 28px 30px;
+    text-align: center;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 92vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal::before {
+    content: '';
+    position: absolute;
+    top: -4px; left: 30px; right: 30px;
+    height: 6px;
+    background: linear-gradient(90deg, var(--berry), var(--sun), var(--leaf), var(--sky), var(--plum));
+    border-radius: 4px;
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .modal-eyebrow {
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--berry);
+    margin-bottom: 6px;
+  }
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--ink);
+    margin-bottom: 12px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .modal-text {
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 20px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  .modal-emoji {
+    font-size: 96px;
+    margin: 16px 0;
+    display: inline-block;
+    animation: bounce 1s infinite alternate ease-in-out;
+    filter: drop-shadow(3px 6px 0 rgba(42, 45, 67, 0.18));
+  }
+  @keyframes bounce {
+    0% { transform: translateY(0) rotate(-4deg); }
+    100% { transform: translateY(-14px) rotate(4deg); }
+  }
+
+  .preview-sentence {
+    background: var(--cream);
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    padding: 16px 18px;
+    margin: 16px 0 20px;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.35;
+    box-shadow: var(--shadow-sm);
+  }
+  .preview-sentence .target-word {
+    background: rgba(255, 200, 87, 0.5);
+  }
+
+  .big-button {
+    background: var(--berry);
+    color: var(--cream);
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 800;
+    border: 4px solid var(--ink);
+    border-radius: 20px;
+    padding: 16px 32px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 var(--ink);
+    transition: transform 0.1s, box-shadow 0.1s;
+    margin: 6px;
+    letter-spacing: -0.01em;
+  }
+  .big-button:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--ink);
+  }
+  .big-button.start {
+    background: var(--leaf);
+    font-size: 28px;
+    padding: 20px 40px;
+  }
+  .big-button.secondary {
+    background: var(--cream);
+    color: var(--ink);
+  }
+  .small-button {
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin: 4px;
+    transition: background 0.15s;
+  }
+  .small-button:active { background: var(--ink); color: var(--cream); }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .theme-card {
+    background: var(--cream);
+    border: 3px solid var(--ink);
+    border-radius: 20px;
+    padding: 18px 10px 14px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 0 var(--ink);
+    position: relative;
+    overflow: hidden;
+  }
+  .theme-card:nth-child(1) { background: linear-gradient(180deg, #FFE2B0, #FFCB85); }
+  .theme-card:nth-child(2) { background: linear-gradient(180deg, #A8D8EA, #FFE5A0); }
+  .theme-card:nth-child(3) { background: linear-gradient(180deg, #C9E4DE, #A8D8B9); }
+  .theme-card:nth-child(4) { background: linear-gradient(180deg, #FFF1D6, #FFC4B0); }
+  .theme-card:nth-child(5) { background: linear-gradient(180deg, #C9B6E4, #FFD4DD); }
+  .theme-card:nth-child(6) { background: linear-gradient(180deg, #FFD4B5, #FFF1B0); }
+  .theme-card:nth-child(7) { background: linear-gradient(180deg, #B5D9A8, #D4E8B0); }
+  .theme-card:nth-child(8) { background: linear-gradient(180deg, #B5DDF1, #C8E6B5); }
+  .theme-card:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--ink);
+  }
+  .theme-card-emoji {
+    font-size: 56px;
+    line-height: 1;
+    filter: drop-shadow(2px 4px 0 rgba(42, 45, 67, 0.15));
+  }
+  .theme-card-name {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-top: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .friends-display {
+    background: var(--cream);
+    border: 3px dashed var(--ink);
+    border-radius: 18px;
+    padding: 12px;
+    margin-top: 16px;
+  }
+  .friends-display-label {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--plum);
+    margin-bottom: 6px;
+  }
+  .friends-row {
+    font-size: 36px;
+    letter-spacing: 4px;
+    line-height: 1;
+  }
+
+  @media (max-width: 500px) {
+    .top-bar { padding: 14px 14px 16px; }
+    .stat-pill { font-size: 15px; padding: 6px 12px; }
+    .stat-pill .icon { font-size: 18px; }
+    .sentence { font-size: 22px; }
+    .sentence-card { padding: 14px 16px; border-radius: 20px; }
+    .falling-item { font-size: 92px; }
+    .modal-title { font-size: 30px; }
+    .modal-text { font-size: 17px; }
+    .modal { padding: 28px 20px 24px; }
+    .theme-card-name { font-size: 16px; }
+    .theme-card-emoji { font-size: 46px; }
+    .big-button { font-size: 20px; padding: 14px 24px; }
+    .big-button.start { font-size: 22px; padding: 16px 28px; }
+    .preview-sentence { font-size: 20px; }
+  }
+  @media (max-width: 380px) {
+    .falling-item { font-size: 80px; }
+    .sentence { font-size: 19px; }
+  }
+</style>
+</head>
+<body class="theme-backyard">
+  <div class="cloud cloud-1"></div>
+  <div class="cloud cloud-2"></div>
+  <div class="cloud cloud-3"></div>
+
+  <div id="game">
+    <button class="mute-button" id="muteBtn" aria-label="Toggle sound" title="Sound on/off">🔊</button>
+    <div id="themeDecorations"></div>
+    <div class="top-bar" id="topBar" style="display:none;">
+      <div class="top-row">
+        <div class="stat-pill">
+          <span class="icon">⭐</span>
+          <span class="stars-num" id="starCount">0</span>
+        </div>
+        <div class="stat-pill theme-pill" id="themeBadge">🌳 Backyard</div>
+        <div class="stat-pill">
+          <span id="roundNum">1</span><span style="opacity:0.4;">/</span><span id="roundTotal">3</span>
+        </div>
+      </div>
+      <div class="sentence-card">
+        <div class="sentence" id="sentence"></div>
+      </div>
+    </div>
+    <div id="playArea"></div>
+  </div>
+
+<script>
+// EMOJI AUDIT v2: every emoji rechecked for unambiguous match to its word
+const THEMES = [
+  { id: "school", name: "School", icon: "🏫", bodyClass: "theme-school",
+    sentences: [
+      { sentence: "I sit in my seat with a book and a pencil.",
+        targets: [{word:"seat",emoji:"🪑"},{word:"book",emoji:"📖"},{word:"pencil",emoji:"✏️"}] },
+      { sentence: "The bell rings and we run to the bus.",
+        targets: [{word:"bell",emoji:"🔔"},{word:"bus",emoji:"🚌"}] },
+      { sentence: "I eat an apple and a banana for lunch.",
+        targets: [{word:"apple",emoji:"🍎"},{word:"banana",emoji:"🍌"}] }
+    ],
+    distractors: [{word:"clock",emoji:"🕐"},{word:"bag",emoji:"🎒"},{word:"globe",emoji:"🌍"},{word:"scissors",emoji:"✂️"},{word:"paint",emoji:"🎨"},{word:"ruler",emoji:"📏"}]
+  },
+  { id: "beach", name: "Beach", icon: "🏖️", bodyClass: "theme-beach",
+    sentences: [
+      { sentence: "I see a crab and a fish in the ocean.",
+        targets: [{word:"crab",emoji:"🦀"},{word:"fish",emoji:"🐟"},{word:"ocean",emoji:"🌊"}] },
+      { sentence: "The sun is hot so I sit under an umbrella.",
+        targets: [{word:"sun",emoji:"☀️"},{word:"umbrella",emoji:"☂️"}] },
+      { sentence: "I find a shell and a starfish by the boat.",
+        targets: [{word:"shell",emoji:"🐚"},{word:"starfish",emoji:"⭐"},{word:"boat",emoji:"⛵"}] }
+    ],
+    distractors: [{word:"bird",emoji:"🐦"},{word:"ice cream",emoji:"🍦"},{word:"hat",emoji:"👒"},{word:"ball",emoji:"🏐"},{word:"octopus",emoji:"🐙"},{word:"whale",emoji:"🐳"}]
+  },
+  { id: "backyard", name: "Backyard", icon: "🌳", bodyClass: "theme-backyard",
+    sentences: [
+      { sentence: "The apple falls from the tree onto a leaf.",
+        targets: [{word:"apple",emoji:"🍎"},{word:"tree",emoji:"🌳"},{word:"leaf",emoji:"🍃"}] },
+      { sentence: "A frog hops next to a flower and a bee.",
+        targets: [{word:"frog",emoji:"🐸"},{word:"flower",emoji:"🌼"},{word:"bee",emoji:"🐝"}] },
+      { sentence: "My dog plays with a ball under the sun.",
+        targets: [{word:"dog",emoji:"🐶"},{word:"ball",emoji:"⚽"},{word:"sun",emoji:"☀️"}] }
+    ],
+    distractors: [{word:"bird",emoji:"🐦"},{word:"rock",emoji:"🪨"},{word:"cloud",emoji:"☁️"},{word:"butterfly",emoji:"🦋"},{word:"snail",emoji:"🐌"},{word:"mushroom",emoji:"🍄"}]
+  },
+  { id: "kitchen", name: "Kitchen", icon: "🍳", bodyClass: "theme-kitchen",
+    sentences: [
+      { sentence: "I see an egg, some bread, and an apple.",
+        targets: [{word:"egg",emoji:"🥚"},{word:"bread",emoji:"🍞"},{word:"apple",emoji:"🍎"}] },
+      { sentence: "I drink milk and eat a cookie.",
+        targets: [{word:"milk",emoji:"🥛"},{word:"cookie",emoji:"🍪"}] },
+      { sentence: "Mom makes a cake with a fork and a knife.",
+        targets: [{word:"cake",emoji:"🎂"},{word:"fork",emoji:"🍴"},{word:"knife",emoji:"🔪"}] }
+    ],
+    distractors: [{word:"banana",emoji:"🍌"},{word:"cheese",emoji:"🧀"},{word:"pizza",emoji:"🍕"},{word:"grapes",emoji:"🍇"},{word:"taco",emoji:"🌮"},{word:"corn",emoji:"🌽"},{word:"donut",emoji:"🍩"}]
+  },
+  { id: "bedroom", name: "My Bedroom", icon: "🛏️", bodyClass: "theme-bedroom",
+    sentences: [
+      { sentence: "I sleep in my bed with a teddy bear.",
+        targets: [{word:"bed",emoji:"🛏️"},{word:"teddy bear",emoji:"🧸"}] },
+      { sentence: "I see the moon and a star out my window.",
+        targets: [{word:"moon",emoji:"🌙"},{word:"star",emoji:"⭐"}] },
+      { sentence: "I put on my shirt, my socks, and my shoes.",
+        targets: [{word:"shirt",emoji:"👕"},{word:"socks",emoji:"🧦"},{word:"shoes",emoji:"👟"}] }
+    ],
+    distractors: [{word:"clock",emoji:"🕐"},{word:"book",emoji:"📖"},{word:"hat",emoji:"🎩"},{word:"dress",emoji:"👗"},{word:"glasses",emoji:"👓"},{word:"backpack",emoji:"🎒"}]
+  },
+  { id: "playroom", name: "Playroom", icon: "🧸", bodyClass: "theme-playroom",
+    sentences: [
+      { sentence: "I play with my truck and my robot.",
+        targets: [{word:"truck",emoji:"🚚"},{word:"robot",emoji:"🤖"}] },
+      { sentence: "I read a book and play with a ball.",
+        targets: [{word:"book",emoji:"📖"},{word:"ball",emoji:"⚽"}] },
+      { sentence: "I have a kite, a balloon, and a drum.",
+        targets: [{word:"kite",emoji:"🪁"},{word:"balloon",emoji:"🎈"},{word:"drum",emoji:"🥁"}] }
+    ],
+    distractors: [{word:"puzzle",emoji:"🧩"},{word:"car",emoji:"🚗"},{word:"train",emoji:"🚂"},{word:"teddy",emoji:"🧸"},{word:"plane",emoji:"✈️"},{word:"crayon",emoji:"🖍️"}]
+  },
+  { id: "playground", name: "Playground", icon: "🛝", bodyClass: "theme-playground",
+    sentences: [
+      { sentence: "I go down the slide next to a tree.",
+        targets: [{word:"slide",emoji:"🛝"},{word:"tree",emoji:"🌳"}] },
+      { sentence: "I kick a ball and run with my dog.",
+        targets: [{word:"ball",emoji:"⚽"},{word:"dog",emoji:"🐶"}] },
+      { sentence: "A bird and a butterfly fly under the sun.",
+        targets: [{word:"bird",emoji:"🐦"},{word:"butterfly",emoji:"🦋"},{word:"sun",emoji:"☀️"}] }
+    ],
+    distractors: [{word:"cloud",emoji:"☁️"},{word:"kite",emoji:"🪁"},{word:"ice cream",emoji:"🍦"},{word:"ladybug",emoji:"🐞"},{word:"flower",emoji:"🌼"},{word:"squirrel",emoji:"🐿️"}]
+  },
+  { id: "park", name: "The Park", icon: "🦆", bodyClass: "theme-park",
+    sentences: [
+      { sentence: "A duck swims with a frog and a turtle.",
+        targets: [{word:"duck",emoji:"🦆"},{word:"frog",emoji:"🐸"},{word:"turtle",emoji:"🐢"}] },
+      { sentence: "I see a squirrel run up a big tree.",
+        targets: [{word:"squirrel",emoji:"🐿️"},{word:"tree",emoji:"🌳"}] },
+      { sentence: "We eat a sandwich and grapes for lunch.",
+        targets: [{word:"sandwich",emoji:"🥪"},{word:"grapes",emoji:"🍇"}] }
+    ],
+    distractors: [{word:"rock",emoji:"🪨"},{word:"flower",emoji:"🌼"},{word:"butterfly",emoji:"🦋"},{word:"dog",emoji:"🐶"},{word:"leaf",emoji:"🍃"},{word:"bird",emoji:"🐦"}]
+  }
+];
+
+const FRIENDS = ['🐶','🐱','🐰','🦊','🐻','🐼','🐨','🦁','🐸','🐵'];
+
+// ============ THEME-SPECIFIC BACKGROUND DECORATIONS ============
+// Each theme has static + animated elements that don't interfere with falling items
+const THEME_DECORATIONS = {
+  school: {
+    static: [
+      { emoji: '🏫', size: 90, pos: { left: '5%', bottom: '5%' }, opacity: 0.35 },
+      { emoji: '📚', size: 56, pos: { right: '6%', bottom: '8%' }, opacity: 0.4 },
+      { emoji: '🍎', size: 40, pos: { right: '10%', top: '20%' }, opacity: 0.3 }
+    ],
+    animated: [
+      { emoji: '🦋', size: 36, pos: { left: '8%', top: '35%' }, animation: 'buzzAround 12s ease-in-out infinite' }
+    ]
+  },
+  beach: {
+    static: [
+      { emoji: '🌴', size: 100, pos: { left: '2%', bottom: '8%' }, opacity: 0.5, animation: 'sway 4s ease-in-out infinite' },
+      { emoji: '🌴', size: 80, pos: { right: '3%', bottom: '10%' }, opacity: 0.45, animation: 'sway 5s ease-in-out infinite reverse' },
+      { emoji: '🏖️', size: 50, pos: { right: '12%', bottom: '20%' }, opacity: 0.35 }
+    ],
+    animated: [
+      { emoji: '🐬', size: 44, pos: { top: '50%' }, animation: 'swimRight 18s linear infinite' },
+      { emoji: '🪿', size: 32, pos: { top: '15%' }, animation: 'swimLeft 24s linear infinite' }
+    ]
+  },
+  backyard: {
+    static: [
+      { emoji: '🌳', size: 110, pos: { left: '3%', bottom: '5%' }, opacity: 0.45, animation: 'sway 6s ease-in-out infinite' },
+      { emoji: '🌳', size: 90, pos: { right: '4%', bottom: '8%' }, opacity: 0.4, animation: 'sway 7s ease-in-out infinite reverse' },
+      { emoji: '🌷', size: 36, pos: { left: '15%', bottom: '12%' }, opacity: 0.5 },
+      { emoji: '🌷', size: 36, pos: { right: '18%', bottom: '14%' }, opacity: 0.5 }
+    ],
+    animated: [
+      { emoji: '🦋', size: 38, pos: { left: '15%', top: '40%' }, animation: 'buzzAround 10s ease-in-out infinite' },
+      { emoji: '🐝', size: 30, pos: { right: '20%', top: '55%' }, animation: 'buzzAround 8s ease-in-out infinite reverse' }
+    ]
+  },
+  kitchen: {
+    static: [
+      { emoji: '🍽️', size: 70, pos: { left: '4%', bottom: '6%' }, opacity: 0.35 },
+      { emoji: '🥘', size: 60, pos: { right: '5%', bottom: '8%' }, opacity: 0.35 },
+      { emoji: '🥄', size: 42, pos: { right: '15%', bottom: '20%' }, opacity: 0.3, animation: 'sway 4s ease-in-out infinite' }
+    ],
+    animated: []
+  },
+  bedroom: {
+    static: [
+      { emoji: '🛏️', size: 80, pos: { left: '4%', bottom: '6%' }, opacity: 0.3 },
+      { emoji: '🌙', size: 70, pos: { right: '8%', top: '10%' }, opacity: 0.55 },
+      { emoji: '⭐', size: 24, pos: { right: '20%', top: '18%' }, opacity: 0.6, animation: 'blink 4s ease-in-out infinite' },
+      { emoji: '⭐', size: 20, pos: { right: '12%', top: '25%' }, opacity: 0.5, animation: 'blink 5s ease-in-out infinite' },
+      { emoji: '⭐', size: 18, pos: { right: '30%', top: '8%' }, opacity: 0.45, animation: 'blink 6s ease-in-out infinite' },
+      { emoji: '⭐', size: 16, pos: { left: '15%', top: '15%' }, opacity: 0.4, animation: 'blink 7s ease-in-out infinite' }
+    ],
+    animated: []
+  },
+  playroom: {
+    static: [
+      { emoji: '🧸', size: 80, pos: { left: '4%', bottom: '8%' }, opacity: 0.4 },
+      { emoji: '🚂', size: 70, pos: { right: '5%', bottom: '10%' }, opacity: 0.4 },
+      { emoji: '🎨', size: 50, pos: { right: '20%', bottom: '25%' }, opacity: 0.35 }
+    ],
+    animated: [
+      { emoji: '🎈', size: 40, pos: { left: '20%', top: '30%' }, animation: 'floatSlow 5s ease-in-out infinite' }
+    ]
+  },
+  playground: {
+    static: [
+      { emoji: '🌳', size: 90, pos: { left: '3%', bottom: '8%' }, opacity: 0.4, animation: 'sway 6s ease-in-out infinite' },
+      { emoji: '🛝', size: 80, pos: { right: '4%', bottom: '6%' }, opacity: 0.4 },
+      { emoji: '☀️', size: 70, pos: { right: '10%', top: '8%' }, opacity: 0.55 }
+    ],
+    animated: [
+      { emoji: '🦋', size: 38, pos: { left: '12%', top: '35%' }, animation: 'buzzAround 11s ease-in-out infinite' }
+    ]
+  },
+  park: {
+    static: [
+      { emoji: '🌳', size: 100, pos: { left: '3%', bottom: '6%' }, opacity: 0.45, animation: 'sway 7s ease-in-out infinite' },
+      { emoji: '🌳', size: 80, pos: { right: '4%', bottom: '8%' }, opacity: 0.4, animation: 'sway 6s ease-in-out infinite reverse' },
+      { emoji: '🌷', size: 32, pos: { left: '25%', bottom: '12%' }, opacity: 0.5 }
+    ],
+    animated: [
+      { emoji: '🐦', size: 32, pos: { top: '20%' }, animation: 'swimRight 22s linear infinite' },
+      { emoji: '🦋', size: 36, pos: { right: '20%', top: '45%' }, animation: 'buzzAround 12s ease-in-out infinite' }
+    ]
+  }
+};
+
+// ============ SOUND SYSTEM (procedural, Web Audio API) ============
+const sound = {
+  ctx: null,
+  enabled: true,
+  
+  init() {
+    // Lazily create AudioContext on first user gesture (browser requirement)
+    if (this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      console.warn('Web Audio not supported');
+    }
+  },
+  
+  // Cheerful "ding" when a target is caught
+  catch() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Two-note chime: a perfect fifth, plays warm and rewarding
+    [659.25, 987.77].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i * 0.05);
+      gain.gain.linearRampToValueAtTime(0.18, now + i * 0.05 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.4);
+      osc.connect(gain).connect(this.ctx.destination);
+      osc.start(now + i * 0.05);
+      osc.stop(now + i * 0.05 + 0.4);
+    });
+  },
+  
+  // Soft "boop" for wrong taps — neutral, not punishing
+  miss() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.15);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain).connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  },
+  
+  // Cheerful arpeggio for completing a sentence
+  sentenceComplete() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i * 0.08);
+      gain.gain.linearRampToValueAtTime(0.15, now + i * 0.08 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.35);
+      osc.connect(gain).connect(this.ctx.destination);
+      osc.start(now + i * 0.08);
+      osc.stop(now + i * 0.08 + 0.35);
+    });
+  },
+  
+  // Big triumphant fanfare for completing a theme
+  themeComplete() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    // C major triad followed by an octave-up C
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i * 0.1);
+      gain.gain.linearRampToValueAtTime(0.18, now + i * 0.1 + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.6);
+      osc.connect(gain).connect(this.ctx.destination);
+      osc.start(now + i * 0.1);
+      osc.stop(now + i * 0.1 + 0.6);
+    });
+  },
+  
+  // Tiny tick for button presses
+  tap() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 800;
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc.connect(gain).connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.05);
+  }
+};
+
+// ============ PARTICLE BURST SYSTEM ============
+// Creates a delightful multi-element celebration: ring pulse + flying particles
+const PARTICLE_COLORS = ['#FFC857', '#E84855', '#6BAA75', '#A8D8EA', '#6A4C93', '#FFB5A7'];
+const PARTICLE_EMOJI = ['⭐', '✨', '💫', '🌟'];
+
+function burstParticles(x, y, container) {
+  // 1. Expanding ring
+  const ring = document.createElement('div');
+  ring.className = 'ring';
+  ring.style.cssText = `
+    position: absolute;
+    left: ${x}px;
+    top: ${y}px;
+    width: 60px;
+    height: 60px;
+    border: 5px solid var(--sun);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 240;
+    animation: ringPulse 0.6s ease-out forwards;
+  `;
+  container.appendChild(ring);
+  setTimeout(() => ring.remove(), 600);
+  
+  // 2. Confetti shards flying outward
+  const numConfetti = 12;
+  for (let i = 0; i < numConfetti; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle confetti';
+    const angle = (Math.PI * 2 * i) / numConfetti + (Math.random() - 0.5) * 0.4;
+    const distance = 80 + Math.random() * 60;
+    const tx = Math.cos(angle) * distance;
+    const ty = Math.sin(angle) * distance - 30; // bias upward
+    const tr = (Math.random() - 0.5) * 720;
+    const color = PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)];
+    p.style.cssText = `
+      left: ${x}px;
+      top: ${y}px;
+      background: ${color};
+      --tx: ${tx}px;
+      --ty: ${ty}px;
+      --tr: ${tr}deg;
+      animation: particleFly ${0.7 + Math.random() * 0.4}s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    `;
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+  
+  // 3. A few star sparkles
+  const numStars = 5;
+  for (let i = 0; i < numStars; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle spark';
+    p.textContent = PARTICLE_EMOJI[Math.floor(Math.random() * PARTICLE_EMOJI.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 50 + Math.random() * 80;
+    const tx = Math.cos(angle) * distance;
+    const ty = Math.sin(angle) * distance - 40;
+    const tr = (Math.random() - 0.5) * 360;
+    p.style.cssText = `
+      left: ${x}px;
+      top: ${y}px;
+      font-size: ${24 + Math.random() * 18}px;
+      --tx: ${tx}px;
+      --ty: ${ty}px;
+      --tr: ${tr}deg;
+      animation: particleFly ${0.9 + Math.random() * 0.5}s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    `;
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 1500);
+  }
+}
+
+// ============ THEME DECORATIONS RENDERER ============
+const decorationsLayer = document.getElementById('themeDecorations');
+
+function clearDecorations() {
+  if (decorationsLayer) decorationsLayer.innerHTML = '';
+}
+
+function renderDecorations(themeId) {
+  clearDecorations();
+  const config = THEME_DECORATIONS[themeId];
+  if (!config) return;
+  
+  const all = [...(config.static || []), ...(config.animated || [])];
+  all.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'theme-decoration' + (d.animation ? ' animated' : '');
+    el.textContent = d.emoji;
+    let css = `font-size: ${d.size}px; line-height: 1;`;
+    if (d.opacity !== undefined) css += `opacity: ${d.opacity};`;
+    if (d.pos) {
+      Object.entries(d.pos).forEach(([k, v]) => { css += `${k}: ${v};`; });
+    }
+    if (d.animation) css += `animation: ${d.animation};`;
+    el.style.cssText += css;
+    decorationsLayer.appendChild(el);
+  });
+}
+
+
+const state = {
+  stars: 0,
+  currentTheme: null, themeIndex: 0, sentenceIndex: 0,
+  caught: new Set(), needed: 0, items: [],
+  rafId: null, spawnTimer: null,
+  friendsUnlocked: 0, completedThemes: new Set(),
+  sentenceActive: false,
+  generation: 0,            // increments each sentence — items from old generations are rejected
+  lastSpawnedWord: null,    // for no-immediate-repeat
+  recentSpawns: []          // for stronger distribution (no 3-in-a-row)
+};
+
+const playArea = document.getElementById('playArea');
+const sentenceEl = document.getElementById('sentence');
+const topBar = document.getElementById('topBar');
+
+function renderSentenceInto(el, puzzle) {
+  let html = puzzle.sentence;
+  const sortedTargets = [...puzzle.targets].sort((a, b) => b.word.length - a.word.length);
+  sortedTargets.forEach((t) => {
+    const wordLower = t.word.toLowerCase();
+    const caughtClass = (el === sentenceEl && state.caught.has(wordLower)) ? 'caught' : '';
+    const escaped = t.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('\\b(' + escaped + ')\\b', 'i');
+    html = html.replace(re, `<span class="target-word ${caughtClass}" data-word="${wordLower}">$1</span>`);
+  });
+  el.innerHTML = html;
+}
+
+function flashTargetWord(word) {
+  const el = sentenceEl.querySelector(`[data-word="${word}"]`);
+  if (!el) return;
+  el.classList.add('flash');
+  setTimeout(() => {
+    el.classList.remove('flash');
+    el.classList.add('caught');
+  }, 450);
+}
+
+class FallingItem {
+  constructor(word, emoji, isTarget, generation) {
+    this.word = word.toLowerCase();
+    this.emoji = emoji;
+    this.isTarget = isTarget;
+    this.generation = generation;  // tag with current generation
+    this.dead = false;
+    const el = document.createElement('div');
+    el.className = 'falling-item';
+    el.textContent = emoji;
+    el.dataset.generation = generation;
+    el.style.animationDelay = (Math.random() * -3) + 's';
+    el.addEventListener('click', () => this.handleTap());
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); this.handleTap(); }, { passive: false });
+    this.el = el;
+    const playWidth = playArea.clientWidth;
+    const itemSize = playWidth < 500 ? 100 : 130;
+    this.x = itemSize/2 + Math.random() * Math.max(playWidth - itemSize - 20, 100);
+    this.y = -120;
+    this.speed = 0.45 + Math.random() * 0.45;
+    this.sway = Math.random() * Math.PI * 2;
+    this.swayAmount = 12 + Math.random() * 22;
+    el.style.left = this.x + 'px';
+    el.style.top = this.y + 'px';
+    playArea.appendChild(el);
+  }
+  update() {
+    if (this.dead) return false;
+    // If this item is from an older generation, kill it
+    if (this.generation !== state.generation) { this.remove(); return false; }
+    this.y += this.speed;
+    this.sway += 0.025;
+    const swayX = Math.sin(this.sway) * this.swayAmount;
+    this.el.style.top = this.y + 'px';
+    this.el.style.left = (this.x + swayX) + 'px';
+    if (this.y > playArea.clientHeight + 80) { this.remove(); return false; }
+    return true;
+  }
+  handleTap() {
+    if (this.dead) return;
+    if (this.generation !== state.generation) { this.remove(); return; }
+    if (this.isTarget && !state.caught.has(this.word)) {
+      state.caught.add(this.word);
+      state.stars++; updateStars();
+      flashTargetWord(this.word);
+      showPopEffect(this.x, this.y, '+1');
+      // Capture position BEFORE removing the element
+      const burstX = this.x + (this.el.offsetWidth / 2);
+      const burstY = this.y + (this.el.offsetHeight / 2);
+      burstParticles(burstX, burstY, playArea);
+      sound.catch();
+      this.remove();
+      if (state.caught.size >= state.needed) {
+        state.sentenceActive = false;
+        setTimeout(() => completeSentence(), 900);
+      }
+    } else {
+      this.el.classList.add('shake-effect');
+      sound.miss();
+      setTimeout(() => { if (this.el) this.el.classList.remove('shake-effect'); }, 400);
+    }
+  }
+  remove() {
+    this.dead = true;
+    if (this.el && this.el.parentNode) this.el.parentNode.removeChild(this.el);
+    const idx = state.items.indexOf(this);
+    if (idx > -1) state.items.splice(idx, 1);
+  }
+}
+
+function showPopEffect(x, y, text) {
+  const pop = document.createElement('div');
+  pop.className = 'pop-effect';
+  pop.textContent = text;
+  pop.style.left = x + 'px';
+  pop.style.top = y + 'px';
+  playArea.appendChild(pop);
+  setTimeout(() => { if (pop.parentNode) pop.parentNode.removeChild(pop); }, 1000);
+}
+
+function gameLoop() {
+  for (let i = state.items.length - 1; i >= 0; i--) {
+    const item = state.items[i];
+    if (item.dead) { state.items.splice(i, 1); continue; }
+    item.update();
+  }
+  state.rafId = requestAnimationFrame(gameLoop);
+}
+
+function pickItemToSpawn() {
+  const theme = state.currentTheme;
+  const puzzle = theme.sentences[state.sentenceIndex];
+  const uncaughtTargets = puzzle.targets.filter(t => !state.caught.has(t.word.toLowerCase()));
+
+  // Build candidate pool: ~50% targets, ~50% distractors
+  // Then reject candidates equal to last spawn (prevents 5-in-a-row)
+  // And reject if 2 of the last 3 spawns were this same word
+
+  const tryPick = () => {
+    let candidate;
+    if (uncaughtTargets.length > 0 && Math.random() < 0.5) {
+      candidate = uncaughtTargets[Math.floor(Math.random() * uncaughtTargets.length)];
+      return { ...candidate, isTarget: true };
+    } else {
+      const d = theme.distractors[Math.floor(Math.random() * theme.distractors.length)];
+      return { ...d, isTarget: false };
+    }
+  };
+
+  // Try up to 5 times to find a non-repeat
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const c = tryPick();
+    const w = c.word.toLowerCase();
+    // Reject if same as last spawn
+    if (w === state.lastSpawnedWord) continue;
+    // Reject if it appears 2+ times in recent spawns (last 3)
+    const recentCount = state.recentSpawns.filter(rw => rw === w).length;
+    if (recentCount >= 2) continue;
+    return c;
+  }
+  // If we couldn't find a non-repeat after 5 tries, just take whatever
+  return tryPick();
+}
+
+function spawn() {
+  if (!state.sentenceActive) return;
+  const pick = pickItemToSpawn();
+  const item = new FallingItem(pick.word, pick.emoji, pick.isTarget, state.generation);
+  state.items.push(item);
+  state.lastSpawnedWord = pick.word.toLowerCase();
+  state.recentSpawns.push(pick.word.toLowerCase());
+  if (state.recentSpawns.length > 3) state.recentSpawns.shift();
+}
+
+function updateStars() { document.getElementById('starCount').textContent = state.stars; }
+
+function stopSpawning() {
+  state.sentenceActive = false;
+  if (state.spawnTimer) { clearInterval(state.spawnTimer); state.spawnTimer = null; }
+}
+
+function hardClearItems() {
+  // Bump generation so any in-flight items are invalid
+  state.generation++;
+  // Mark all current items dead
+  state.items.forEach(it => {
+    it.dead = true;
+    if (it.el && it.el.parentNode) it.el.parentNode.removeChild(it.el);
+  });
+  state.items = [];
+  // Sweep any orphan DOM nodes
+  playArea.querySelectorAll('.falling-item').forEach(n => n.remove());
+  playArea.querySelectorAll('.pop-effect').forEach(n => n.remove());
+  // Reset spawn history
+  state.lastSpawnedWord = null;
+  state.recentSpawns = [];
+}
+
+function showThemePicker() {
+  stopSpawning();
+  hardClearItems();
+  clearDecorations();
+  topBar.style.display = 'none';
+  document.querySelectorAll('.overlay').forEach(o => o.remove());
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'themePicker';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-eyebrow">Reading Adventure</div>
+      <div class="modal-title">Word Catcher</div>
+      <div class="modal-text">Pick a place to read about</div>
+      <div class="theme-grid">
+        ${THEMES.map((t, i) => `
+          <div class="theme-card" data-idx="${i}">
+            <div class="theme-card-emoji">${t.icon}</div>
+            <div class="theme-card-name">${t.name}</div>
+          </div>`).join('')}
+      </div>
+      ${state.stars > 0 || state.friendsUnlocked > 0 ? `
+        <div class="friends-display">
+          <div class="friends-display-label">Your Collection</div>
+          <div style="display:flex; justify-content:space-around; align-items:center; gap:12px;">
+            <div style="font-family: var(--font-display); font-weight: 800; font-size: 20px;">
+              <span style="color: var(--berry);">${state.stars}</span> ⭐
+            </div>
+            ${state.friendsUnlocked > 0 ? `<div class="friends-row">${FRIENDS.slice(0, state.friendsUnlocked).join(' ')}</div>` : ''}
+          </div>
+        </div>
+      ` : ''}
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.idx);
+      sound.tap();
+      overlay.remove();
+      startTheme(idx);
+    });
+  });
+}
+
+function startTheme(idx) {
+  state.themeIndex = idx;
+  state.currentTheme = THEMES[idx];
+  state.sentenceIndex = 0;
+  document.body.className = state.currentTheme.bodyClass;
+  renderDecorations(state.currentTheme.id);
+  topBar.style.display = 'block';
+  document.getElementById('themeBadge').textContent = `${state.currentTheme.icon} ${state.currentTheme.name}`;
+  document.getElementById('roundTotal').textContent = state.currentTheme.sentences.length;
+  showReadyScreen();
+}
+
+// NEW: Ready screen with start button before each sentence
+function showReadyScreen() {
+  stopSpawning();
+  hardClearItems();
+  state.caught = new Set();
+  const puzzle = state.currentTheme.sentences[state.sentenceIndex];
+  state.needed = puzzle.targets.length;
+  document.getElementById('roundNum').textContent = state.sentenceIndex + 1;
+  renderSentenceInto(sentenceEl, puzzle);
+  updateStars();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'readyScreen';
+
+  // Build the preview sentence with target words highlighted
+  const previewEl = document.createElement('div');
+  previewEl.className = 'preview-sentence';
+  renderSentenceInto(previewEl, puzzle);
+
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-eyebrow">Sentence ${state.sentenceIndex + 1} of ${state.currentTheme.sentences.length}</div>
+      <div class="modal-title">Read this!</div>
+      <div id="previewContainer"></div>
+      <div class="modal-text">
+        Then catch the pictures that match the <span style="background: rgba(255, 200, 87, 0.55); padding: 1px 6px; border-radius: 4px; text-decoration: underline; text-decoration-color: var(--berry); text-decoration-thickness: 3px;">underlined words</span>.
+      </div>
+      <button class="big-button start" id="startBtn">I'm ready! →</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('previewContainer').appendChild(previewEl);
+
+  document.getElementById('startBtn').onclick = () => {
+    sound.init(); // Lazy-init audio context on first user gesture
+    sound.tap();
+    overlay.remove();
+    startSentence();
+  };
+}
+
+function startSentence() {
+  // Already cleared in showReadyScreen, but be safe
+  hardClearItems();
+  state.sentenceActive = true;
+  state.spawnTimer = setInterval(spawn, 950);
+  if (!state.rafId) gameLoop();
+  // First spawn happens immediately so the kid doesn't wait
+  spawn();
+}
+
+function completeSentence() {
+  stopSpawning();
+  hardClearItems();
+  const isLastSentence = state.sentenceIndex >= state.currentTheme.sentences.length - 1;
+  if (isLastSentence) completeTheme();
+  else showSentenceCompleteModal();
+}
+
+function showSentenceCompleteModal() {
+  sound.sentenceComplete();
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-eyebrow">Well Done</div>
+      <div class="modal-title">Nice Reading!</div>
+      <div class="modal-emoji">⭐</div>
+      <div class="modal-text">Ready for the next one?</div>
+      <button class="big-button" id="nextBtn">Keep going →</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('nextBtn').onclick = () => {
+    sound.tap();
+    overlay.remove();
+    state.sentenceIndex++;
+    showReadyScreen();
+  };
+}
+
+// Build the end-of-theme tableau showing all targets the kid caught
+function buildTableau() {
+  // Collect unique target emojis from all sentences in this theme
+  const seen = new Set();
+  const items = [];
+  state.currentTheme.sentences.forEach(s => {
+    s.targets.forEach(t => {
+      if (!seen.has(t.word)) {
+        seen.add(t.word);
+        items.push(t);
+      }
+    });
+  });
+  
+  // Render with staggered animation and slight random rotation for charm
+  const itemsHTML = items.map((t, i) => {
+    const rot = (Math.random() - 0.5) * 16; // -8deg to +8deg
+    return `<span class="tableau-item" style="--rot: ${rot}deg; animation-delay: ${i * 80}ms;" title="${t.word}">${t.emoji}</span>`;
+  }).join('');
+  
+  return `
+    <div class="tableau-card">
+      <div class="tableau-scene">${itemsHTML}</div>
+      <div class="tableau-caption">Everything you read at ${state.currentTheme.name.toLowerCase()}!</div>
+    </div>
+  `;
+}
+
+function completeTheme() {
+  state.completedThemes.add(state.currentTheme.id);
+  let friendUnlocked = false;
+  if (state.friendsUnlocked < FRIENDS.length) {
+    state.friendsUnlocked++;
+    friendUnlocked = true;
+  }
+  sound.themeComplete();
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-eyebrow">${friendUnlocked ? 'New Friend Unlocked' : 'Round Complete'}</div>
+      <div class="modal-title">${state.currentTheme.name} Done!</div>
+      <div class="modal-emoji">${friendUnlocked ? FRIENDS[state.friendsUnlocked - 1] : '🏆'}</div>
+      ${buildTableau()}
+      <div class="modal-text">
+        ${friendUnlocked ? `You unlocked a new friend!` : `You finished all the sentences!`}
+      </div>
+      ${state.friendsUnlocked > 0 ? `
+        <div class="friends-display">
+          <div class="friends-display-label">Friends Collected</div>
+          <div class="friends-row">${FRIENDS.slice(0, state.friendsUnlocked).join(' ')}</div>
+        </div>
+      ` : ''}
+      <div style="margin-top: 18px;">
+        <button class="big-button" id="newThemeBtn">Pick a new place</button>
+        <br>
+        <button class="small-button" id="replayBtn">Play this one again</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('newThemeBtn').onclick = () => { sound.tap(); overlay.remove(); showThemePicker(); };
+  document.getElementById('replayBtn').onclick = () => { sound.tap(); overlay.remove(); startTheme(state.themeIndex); };
+}
+
+// ============ MUTE BUTTON WIRING ============
+const muteBtn = document.getElementById('muteBtn');
+function updateMuteButton() {
+  muteBtn.textContent = sound.enabled ? '🔊' : '🔇';
+  muteBtn.title = sound.enabled ? 'Sound on (tap to mute)' : 'Sound off (tap to unmute)';
+}
+muteBtn.addEventListener('click', () => {
+  sound.init();
+  sound.enabled = !sound.enabled;
+  if (sound.enabled) sound.tap();
+  updateMuteButton();
+});
+updateMuteButton();
+
+// Init audio context on first ANY user interaction (browser requirement)
+function firstInteraction() {
+  sound.init();
+  document.removeEventListener('click', firstInteraction);
+  document.removeEventListener('touchstart', firstInteraction);
+}
+document.addEventListener('click', firstInteraction);
+document.addEventListener('touchstart', firstInteraction);
+
+showThemePicker();
+</script>
+</body>
+</html>
